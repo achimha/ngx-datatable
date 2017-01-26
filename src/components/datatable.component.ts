@@ -369,8 +369,8 @@ export class DatatableComponent implements OnInit, AfterViewInit, DoCheck {
    * A boolean/function you can use to check whether you want
    * to select a particular row based on a criteria. Example:
    *
-   *    (selection) => { 
-   *      return selection !== 'Ethel Price'; 
+   *    (selection) => {
+   *      return selection !== 'Ethel Price';
    *    }
    *
    * @type {*}
@@ -893,6 +893,10 @@ export class DatatableComponent implements OnInit, AfterViewInit, DoCheck {
    * @memberOf DatatableComponent
    */
   onColumnResize({column, newValue}: any): void {
+    /* Safari/iOS 10.2 workaround */
+    if (column === undefined) {
+      return;
+    }
     let idx: number;
     let cols = this.columns.map((c, i) => {
       c = Object.assign({}, c);
