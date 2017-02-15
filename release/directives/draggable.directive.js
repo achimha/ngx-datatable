@@ -1,6 +1,7 @@
 "use strict";
 var core_1 = require('@angular/core');
 var Observable_1 = require('rxjs/Observable');
+require("rxjs/add/operator/takeUntil");
 /**
  * Draggable Directive for Angular2
  *
@@ -21,14 +22,16 @@ var DraggableDirective = (function () {
     }
     DraggableDirective.prototype.ngOnDestroy = function () {
         if (this.subscription) {
-            this.subscription.unsubscribe();
+            this._destroySubscription();
         }
     };
     DraggableDirective.prototype.onMouseup = function (event) {
+        if (!this.isDragging)
+            return;
         this.isDragging = false;
         this.element.classList.remove('dragging');
         if (this.subscription) {
-            this.subscription.unsubscribe();
+            this._destroySubscription();
             this.dragEnd.emit({
                 event: event,
                 element: this.element,
@@ -42,8 +45,13 @@ var DraggableDirective = (function () {
             event.preventDefault();
             this.isDragging = true;
             var mouseDownPos_1 = { x: event.clientX, y: event.clientY };
-            this.subscription = Observable_1.Observable.fromEvent(document, 'mousemove')
+            var mouseup = Observable_1.Observable.fromEvent(document, 'mouseup');
+            this.subscription = mouseup
+                .subscribe(function (ev) { return _this.onMouseup(ev); });
+            var mouseMoveSub = Observable_1.Observable.fromEvent(document, 'mousemove')
+                .takeUntil(mouseup)
                 .subscribe(function (ev) { return _this.move(ev, mouseDownPos_1); });
+            this.subscription.add(mouseMoveSub);
             this.dragStart.emit({
                 event: event,
                 element: this.element,
@@ -52,7 +60,7 @@ var DraggableDirective = (function () {
         }
     };
     DraggableDirective.prototype.move = function (event, mouseDownPos) {
-        if (!this.dragging)
+        if (!this.isDragging)
             return;
         var x = event.clientX - mouseDownPos.x;
         var y = event.clientY - mouseDownPos.y;
@@ -69,6 +77,10 @@ var DraggableDirective = (function () {
             });
         }
     };
+    DraggableDirective.prototype._destroySubscription = function () {
+        this.subscription.unsubscribe();
+        this.subscription = undefined;
+    };
     DraggableDirective.decorators = [
         { type: core_1.Directive, args: [{ selector: '[draggable]' },] },
     ];
@@ -83,7 +95,6 @@ var DraggableDirective = (function () {
         'dragStart': [{ type: core_1.Output },],
         'dragging': [{ type: core_1.Output },],
         'dragEnd': [{ type: core_1.Output },],
-        'onMouseup': [{ type: core_1.HostListener, args: ['document:mouseup', ['$event'],] },],
         'onMousedown': [{ type: core_1.HostListener, args: ['mousedown', ['$event'],] },],
     };
     return DraggableDirective;

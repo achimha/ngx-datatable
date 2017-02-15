@@ -1,6 +1,7 @@
 "use strict";
 var core_1 = require('@angular/core');
 var Observable_1 = require('rxjs/Observable');
+require("rxjs/add/operator/takeUntil");
 var ResizeableDirective = (function () {
     function ResizeableDirective(element) {
         this.resizeEnabled = true;
@@ -33,8 +34,13 @@ var ResizeableDirective = (function () {
         if (isHandle) {
             event.stopPropagation();
             this.resizing = true;
-            this.subscription = Observable_1.Observable.fromEvent(document, 'mousemove')
+            var mouseup = Observable_1.Observable.fromEvent(document, 'mouseup');
+            this.subscription = mouseup
+                .subscribe(function (ev) { return _this.onMouseup(); });
+            var mouseMoveSub = Observable_1.Observable.fromEvent(document, 'mousemove')
+                .takeUntil(mouseup)
                 .subscribe(function (e) { return _this.move(e, initialWidth, mouseDownScreenX); });
+            this.subscription.add(mouseMoveSub);
         }
     };
     ResizeableDirective.prototype.move = function (event, initialWidth, mouseDownScreenX) {
@@ -63,7 +69,6 @@ var ResizeableDirective = (function () {
         'minWidth': [{ type: core_1.Input },],
         'maxWidth': [{ type: core_1.Input },],
         'resize': [{ type: core_1.Output },],
-        'onMouseup': [{ type: core_1.HostListener, args: ['document:mouseup',] },],
         'onMousedown': [{ type: core_1.HostListener, args: ['mousedown', ['$event'],] },],
     };
     return ResizeableDirective;
