@@ -4,6 +4,8 @@ import {
 import { Observable } from 'rxjs/Observable';
 import { Subscription } from 'rxjs/Subscription';
 
+import "rxjs/add/operator/takeUntil"
+
 /**
  * Draggable Directive for Angular2
  *
@@ -33,17 +35,18 @@ export class DraggableDirective implements OnDestroy {
 
   ngOnDestroy(): void {
     if (this.subscription) {
-      this.subscription.unsubscribe();
+      this._destroySubscription();
     }
   }
 
-  @HostListener('document:mouseup', ['$event'])
   onMouseup(event: MouseEvent): void {
+    if (!this.isDragging) return;
+
     this.isDragging = false;
     this.element.classList.remove('dragging');
 
     if (this.subscription) {
-      this.subscription.unsubscribe();
+      this._destroySubscription();
       this.dragEnd.emit({
         event,
         element: this.element,
@@ -59,8 +62,16 @@ export class DraggableDirective implements OnDestroy {
       this.isDragging = true;
 
       const mouseDownPos = { x: event.clientX, y: event.clientY };
-      this.subscription = Observable.fromEvent(document, 'mousemove')
+
+      let mouseup = Observable.fromEvent(document, 'mouseup');
+      this.subscription = mouseup
+        .subscribe((ev: MouseEvent) => this.onMouseup(ev));
+
+      let mouseMoveSub = Observable.fromEvent(document, 'mousemove')
+        .takeUntil(mouseup)
         .subscribe((ev: MouseEvent) => this.move(ev, mouseDownPos));
+
+      this.subscription.add(mouseMoveSub);
 
       this.dragStart.emit({
         event,
@@ -71,7 +82,7 @@ export class DraggableDirective implements OnDestroy {
   }
 
   move(event: MouseEvent, mouseDownPos: {x: number, y: number }): void {
-    if (!this.dragging) return;
+    if (!this.isDragging) return;
 
     const x = event.clientX - mouseDownPos.x;
     const y = event.clientY - mouseDownPos.y;
@@ -90,4 +101,8 @@ export class DraggableDirective implements OnDestroy {
     }
   }
 
+  private _destroySubscription() {
+    this.subscription.unsubscribe();
+    this.subscription = undefined;
+  }
 }

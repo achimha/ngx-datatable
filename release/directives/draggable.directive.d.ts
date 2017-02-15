@@ -1,5 +1,6 @@
 import { ElementRef, EventEmitter, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs/Subscription';
+import "rxjs/add/operator/takeUntil";
 /**
  * Draggable Directive for Angular2
  *
@@ -26,4 +27,5 @@ export declare class DraggableDirective implements OnDestroy {
         x: number;
         y: number;
     }): void;
+    private _destroySubscription();
 }

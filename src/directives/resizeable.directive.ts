@@ -4,6 +4,8 @@ import {
 import { Observable } from 'rxjs/Observable';
 import { Subscription } from 'rxjs/Subscription';
 
+import "rxjs/add/operator/takeUntil";
+
 @Directive({
   selector: '[resizeable]',
   host: {
@@ -38,7 +40,6 @@ export class ResizeableDirective implements OnDestroy {
     }
   }
 
-  @HostListener('document:mouseup')
   onMouseup(): void {
     this.resizing = false;
 
@@ -58,8 +59,15 @@ export class ResizeableDirective implements OnDestroy {
       event.stopPropagation();
       this.resizing = true;
 
-      this.subscription = Observable.fromEvent(document, 'mousemove')
+      let mouseup = Observable.fromEvent(document, 'mouseup');
+      this.subscription = mouseup
+        .subscribe((ev: MouseEvent) => this.onMouseup());
+
+      let mouseMoveSub = Observable.fromEvent(document, 'mousemove')
+        .takeUntil(mouseup)
         .subscribe((e: MouseEvent) => this.move(e, initialWidth, mouseDownScreenX));
+
+      this.subscription.add(mouseMoveSub);
     }
   }
 
